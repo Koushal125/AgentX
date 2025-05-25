@@ -1,1 +1,6 @@
-"fastapi\nuvicorn" 
+fastapi
+uvicorn
+httpx
+python-dotenv
+
+#pip install -r requirements.txt
