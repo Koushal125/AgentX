@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-httpx
-python-dotenv
-google-generativeai
-
-#pip install -r requirements.txt
