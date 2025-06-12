@@ -6,4 +6,4 @@ import { JsonGenService } from './json-gen.service';
   controllers: [JsonGenController],
   providers: [JsonGenService]
 })
-export class JsonGenModule {}
+export class JsonGenModule {} 
