@@ -38,45 +38,68 @@
 //     </div>
 //   );
 // }
-'use client';
-import React, { useState } from 'react';
-import Sidebar from '@/components/Sidebar';
-import MetaAgentForm from '@/components/MetaAgentForm';
-import WorkflowPreview from '@/components/WorkflowPreview';
-import ProfileIcon from '@/components/ProfileIcon';
+
+// 'use client';
+// import React, { useState } from 'react';
+// import Sidebar from '@/components/Sidebar';
+// import MetaAgentForm from '@/components/MetaAgentForm';
+// import WorkflowPreview from '@/components/WorkflowPreview';
+// import ProfileIcon from '@/components/ProfileIcon';
+
+// export default function HomePage() {
+//   const [formData, setFormData] = useState<Record<string, string> | null>(null);
+//   const [recentChats, setRecentChats] = useState<string[]>([]);
+
+//   const handlePreview = (data: Record<string, string>) => {
+//     setFormData(data);
+//     setRecentChats((prev) => [...prev, data.taskName || 'Untitled Task']);
+//   };
+
+//   const handleApprove = () => {
+//     alert('Approved');
+//   };
+
+//   const handleReject = () => {
+//     alert('Rejected');
+//     setFormData(null);
+//   };
+
+//   return (
+//     <div className="bg-black min-h-screen text-white pl-64 relative">
+//       <Sidebar chats={recentChats} />
+//       <ProfileIcon />
+//       <main className="p-6 flex gap-6 justify-center items-start">
+//         <MetaAgentForm onPreview={handlePreview} />
+//         {formData && (
+//           <WorkflowPreview
+//             data={formData}
+//             onApprove={handleApprove}
+//             onReject={handleReject}
+//           />
+//         )}
+//       </main>
+//     </div>
+//   );
+// }
+"use client"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 export default function HomePage() {
-  const [formData, setFormData] = useState<Record<string, string> | null>(null);
-  const [recentChats, setRecentChats] = useState<string[]>([]);
+  const router = useRouter()
 
-  const handlePreview = (data: Record<string, string>) => {
-    setFormData(data);
-    setRecentChats((prev) => [...prev, data.taskName || 'Untitled Task']);
-  };
-
-  const handleApprove = () => {
-    alert('Approved');
-  };
-
-  const handleReject = () => {
-    alert('Rejected');
-    setFormData(null);
-  };
+  useEffect(() => {
+    router.push("/auth")
+  }, [router])
 
   return (
-    <div className="bg-black min-h-screen text-white pl-64 relative">
-      <Sidebar chats={recentChats} />
-      <ProfileIcon />
-      <main className="p-6 flex gap-6 justify-center items-start">
-        <MetaAgentForm onPreview={handlePreview} />
-        {formData && (
-          <WorkflowPreview
-            data={formData}
-            onApprove={handleApprove}
-            onReject={handleReject}
-          />
-        )}
-      </main>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">
+          Agent <span style={{ color: "oklch(76.8% 0.233 130.85)" }}>X</span>
+        </h1>
+        <p className="text-gray-400 text-lg">Loading...</p>
+      </div>
     </div>
-  );
+  )
 }
