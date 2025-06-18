@@ -16,64 +16,98 @@ model User {
   role       UserRole @default(USER)
   department String?
   isActive   Boolean  @default(true)
+  timezone   String   @default("UTC")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  // Relationships
   workflows          Workflow[]
   workflowExecutions WorkflowExecution[]
-  approvals          ApprovalTask[]
+  approvals          ApprovalTask[]      @relation("AssignedApprovals")
+  createdApprovals   ApprovalTask[]      @relation("CreatedApprovals")
   notifications      Notification[]
   auditLogs          AuditLog[]
+  emailLogs          EmailLog[]
+  scheduledJobs      ScheduledJob[]
+  escalationActions  EscalationAction[]
 
   @@map("users")
 }
 
 model Workflow {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  description String?
-  prompt      String
-  jsonPlan    Json
-  flowScript  String?
-  status      WorkflowStatus @default(DRAFT)
-  version     Int            @default(1)
-  isActive    Boolean        @default(true)
-  category    String?
-  priority    Priority       @default(MEDIUM)
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  description    String?
+  originalPrompt String // Store the original natural language prompt
+  prompt         String // Processed/refined prompt
+  jsonPlan       Json // Structured workflow plan
+  flowScript     String? // Generated executable script
+  status         WorkflowStatus @default(DRAFT)
+  version        Int            @default(1)
+  isActive       Boolean        @default(true)
+  category       String?
+  priority       Priority       @default(MEDIUM)
 
+  // Enhanced workflow properties
+  estimatedDuration Int? // in minutes
+  maxRetries        Int     @default(3)
+  timeoutMinutes    Int     @default(60)
+  requiresApproval  Boolean @default(false)
+
+  // Metadata
   createdBy      String    @db.ObjectId
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   lastDeployedAt DateTime?
+  lastExecutedAt DateTime?
 
-  creator       User                @relation(fields: [createdBy], references: [id])
-  steps         WorkflowStep[]
-  executions    WorkflowExecution[]
-  triggers      WorkflowTrigger[]
-  conditions    WorkflowCondition[]
-  approvals     ApprovalTask[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
+  // Relationships
+  creator         User                @relation(fields: [createdBy], references: [id])
+  steps           WorkflowStep[]
+  executions      WorkflowExecution[]
+  triggers        WorkflowTrigger[]
+  conditions      WorkflowCondition[]
+  approvals       ApprovalTask[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  scheduledJobs   ScheduledJob[]
+  escalationRules EscalationRule[]
+  emailTemplates  EmailTemplate[]
+  metrics         WorkflowMetrics[]
 
   @@map("workflows")
 }
 
 model WorkflowStep {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  workflowId   String   @db.ObjectId
-  stepNumber   Int
-  name         String
-  description  String?
-  action       String
-  role         String?
-  isOptional   Boolean  @default(false)
-  timeoutHours Int?
-  config       Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId     String     @db.ObjectId
+  stepNumber     Int
+  name           String
+  description    String?
+  action         StepAction
+  role           String?
+  assignedTo     String?    @db.ObjectId // Specific user assignment
+  isOptional     Boolean    @default(false)
+  timeoutMinutes Int?
+  retryCount     Int        @default(0)
+  maxRetries     Int        @default(3)
 
+  // Enhanced step configuration
+  config       Json?
+  inputSchema  Json? // Expected input format
+  outputSchema Json? // Expected output format
+  dependencies String[] @db.ObjectId // Step IDs this step depends on
+
+  // Conditions for step execution
+  executeWhen Json? // Conditional execution rules
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
   workflow   Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   executions StepExecution[]
+  emailLogs  EmailLog[]
 
   @@map("workflow_steps")
 }
@@ -83,11 +117,18 @@ model WorkflowTrigger {
   workflowId String      @db.ObjectId
   name       String
   type       TriggerType
-  config     Json
+  config     Json // Contains schedule, webhook URL, event type, etc.
   isActive   Boolean     @default(true)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
 
+  // Enhanced trigger properties
+  conditions    Json? // Additional trigger conditions
+  lastTriggered DateTime?
+  nextTrigger   DateTime? // For scheduled triggers
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@map("workflow_triggers")
@@ -97,12 +138,18 @@ model WorkflowCondition {
   id         String        @id @default(auto()) @map("_id") @db.ObjectId
   workflowId String        @db.ObjectId
   name       String
-  expression String
+  expression String // Condition logic
   type       ConditionType @default(VALIDATION)
   isActive   Boolean       @default(true)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
 
+  // Enhanced condition properties
+  failureAction String? // What to do when condition fails
+  variables     Json? // Variables used in condition
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@map("workflow_conditions")
@@ -114,15 +161,32 @@ model WorkflowExecution {
   status      ExecutionStatus @default(PENDING)
   startedAt   DateTime        @default(now())
   completedAt DateTime?
-  triggeredBy String          @db.ObjectId
-  input       Json?
-  output      Json?
-  error       String?
 
-  workflow  Workflow        @relation(fields: [workflowId], references: [id])
-  user      User            @relation(fields: [triggeredBy], references: [id])
-  steps     StepExecution[]
-  auditLogs AuditLog[]
+  // Enhanced execution tracking
+  triggeredBy  String       @db.ObjectId
+  triggerType  TriggerType? // How this execution was triggered
+  input        Json?
+  output       Json?
+  error        String?
+  errorDetails Json? // Detailed error information
+
+  // Execution metadata
+  executionTime     Float? // Duration in seconds
+  retryCount        Int     @default(0)
+  parentExecutionId String? @db.ObjectId // For sub-workflows
+
+  // Progress tracking
+  currentStep    Int? // Current step number
+  completedSteps Int  @default(0)
+  totalSteps     Int?
+
+  // Relationships
+  workflow      Workflow        @relation(fields: [workflowId], references: [id])
+  user          User            @relation(fields: [triggeredBy], references: [id])
+  steps         StepExecution[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  emailLogs     EmailLog[]
 
   @@map("workflow_executions")
 }
@@ -134,11 +198,20 @@ model StepExecution {
   status      ExecutionStatus @default(PENDING)
   startedAt   DateTime        @default(now())
   completedAt DateTime?
-  input       Json?
-  output      Json?
-  error       String?
-  retryCount  Int             @default(0)
 
+  // Enhanced step execution
+  input         Json?
+  output        Json?
+  error         String?
+  errorDetails  Json?
+  retryCount    Int     @default(0)
+  executionTime Float? // Duration in seconds
+
+  // Assignment tracking
+  assignedTo String?   @db.ObjectId
+  assignedAt DateTime?
+
+  // Relationships
   execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
   step      WorkflowStep      @relation(fields: [stepId], references: [id])
 
@@ -146,58 +219,290 @@ model StepExecution {
 }
 
 model ApprovalTask {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  workflowId  String         @db.ObjectId
-  assignedTo  String         @db.ObjectId
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String  @db.ObjectId
+  executionId String? @db.ObjectId // Link to specific execution
+  assignedTo  String  @db.ObjectId
+  createdBy   String  @db.ObjectId
+
   title       String
   description String?
   status      ApprovalStatus @default(PENDING)
   priority    Priority       @default(MEDIUM)
-  dueDate     DateTime?
-  decision    String?
-  comments    String?
-  decidedAt   DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
 
+  // Enhanced approval properties
+  dueDate      DateTime?
+  reminderSent Boolean   @default(false)
+  lastReminder DateTime?
+
+  // Decision tracking
+  decision  String?
+  comments  String?
+  decidedAt DateTime?
+
+  // Approval flow
+  approvalLevel Int? // For multi-level approvals
+  delegatedTo   String?   @db.ObjectId
+  delegatedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
   workflow Workflow @relation(fields: [workflowId], references: [id])
-  assignee User     @relation(fields: [assignedTo], references: [id])
+  assignee User     @relation("AssignedApprovals", fields: [assignedTo], references: [id])
+  creator  User     @relation("CreatedApprovals", fields: [createdBy], references: [id])
 
   @@map("approval_tasks")
 }
 
 model Notification {
-  id         String           @id @default(auto()) @map("_id") @db.ObjectId
-  workflowId String?          @db.ObjectId
-  userId     String           @db.ObjectId
-  type       NotificationType
-  title      String
-  message    String
-  isRead     Boolean          @default(false)
-  priority   Priority         @default(LOW)
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String? @db.ObjectId
+  executionId String? @db.ObjectId
+  userId      String  @db.ObjectId
 
-  workflow Workflow? @relation(fields: [workflowId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
+  type     NotificationType
+  title    String
+  message  String
+  isRead   Boolean          @default(false)
+  priority Priority         @default(LOW)
+
+  // Enhanced notification properties
+  channel      NotificationChannel @default(IN_APP)
+  scheduledFor DateTime? // For scheduled notifications
+  sentAt       DateTime?
+  readAt       DateTime?
+
+  // Rich content
+  metadata  Json? // Additional data for rich notifications
+  actionUrl String? // Deep link for actions
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  workflow  Workflow?          @relation(fields: [workflowId], references: [id])
+  execution WorkflowExecution? @relation(fields: [executionId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
 
   @@map("notifications")
 }
 
-model AuditLog {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  workflowId  String?  @db.ObjectId
-  executionId String?  @db.ObjectId
-  userId      String   @db.ObjectId
-  action      String
-  entity      String
-  entityId    String?
-  oldValue    Json?
-  newValue    Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
+model EmailLog {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String? @db.ObjectId
+  executionId String? @db.ObjectId
+  stepId      String? @db.ObjectId
+  userId      String  @db.ObjectId
+  templateId  String? @db.ObjectId
 
+  // Email details
+  to      String[] // Recipient emails
+  cc      String[] @default([])
+  bcc     String[] @default([])
+  subject String
+  body    String
+  isHtml  Boolean  @default(true)
+
+  // Delivery tracking
+  status      EmailStatus @default(PENDING)
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+
+  // Error handling
+  error      String?
+  retryCount Int     @default(0)
+  maxRetries Int     @default(3)
+
+  // Metadata
+  priority Priority @default(MEDIUM)
+  tags     String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  execution WorkflowExecution? @relation(fields: [executionId], references: [id])
+  step      WorkflowStep?      @relation(fields: [stepId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+  template  EmailTemplate?     @relation(fields: [templateId], references: [id])
+
+  @@map("email_logs")
+}
+
+model EmailTemplate {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String  @db.ObjectId
+  name        String
+  description String?
+
+  // Template content
+  subject  String
+  bodyText String // Plain text version
+  bodyHtml String // HTML version
+
+  // Template variables
+  variables Json? // Expected variables for template
+
+  // Template properties
+  isActive Boolean @default(true)
+  category String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  workflow  Workflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  emailLogs EmailLog[]
+
+  @@map("email_templates")
+}
+
+model ScheduledJob {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String  @db.ObjectId
+  userId      String  @db.ObjectId
+  name        String
+  description String?
+
+  // Schedule configuration
+  cronExpression String // Cron expression for scheduling
+  timezone       String @default("UTC")
+
+  // Job status
+  status   JobStatus @default(ACTIVE)
+  isActive Boolean   @default(true)
+
+  // Execution tracking
+  lastRun      DateTime?
+  nextRun      DateTime?
+  runCount     Int       @default(0)
+  successCount Int       @default(0)
+  failureCount Int       @default(0)
+
+  // Configuration
+  maxRuns        Int? // Maximum number of runs (null = unlimited)
+  retryOnFailure Boolean @default(true)
+  retryDelay     Int     @default(5) // minutes
+
+  // Job data
+  jobData Json? // Data to pass to the workflow
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  workflow   Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id])
+  executions JobExecution[]
+
+  @@map("scheduled_jobs")
+}
+
+model JobExecution {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  jobId       String          @db.ObjectId
+  status      ExecutionStatus @default(PENDING)
+  startedAt   DateTime        @default(now())
+  completedAt DateTime?
+
+  // Execution details
+  executionTime Float? // Duration in seconds
+  output        Json?
+  error         String?
+
+  createdAt DateTime @default(now())
+
+  // Relationships
+  job ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_executions")
+}
+
+model EscalationRule {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String  @db.ObjectId
+  name        String
+  description String?
+
+  // Escalation conditions
+  triggerAfter Int // Minutes after which to trigger
+  condition    String // Condition to check for escalation
+
+  // Escalation actions
+  actions Json // Array of actions to take
+
+  // Configuration
+  isActive Boolean  @default(true)
+  priority Priority @default(MEDIUM)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  workflow    Workflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  escalations EscalationAction[]
+
+  @@map("escalation_rules")
+}
+
+model EscalationAction {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  ruleId      String  @db.ObjectId
+  executionId String? @db.ObjectId
+  userId      String  @db.ObjectId
+
+  // Action details
+  action String // Type of escalation action
+  status ExecutionStatus @default(PENDING)
+
+  // Execution tracking
+  triggeredAt DateTime  @default(now())
+  completedAt DateTime?
+
+  // Action data
+  actionData Json? // Specific data for the action
+  result     Json? // Result of the action
+  error      String?
+
+  createdAt DateTime @default(now())
+
+  // Relationships
+  rule EscalationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id])
+
+  @@map("escalation_actions")
+}
+
+model AuditLog {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String? @db.ObjectId
+  executionId String? @db.ObjectId
+  userId      String  @db.ObjectId
+
+  // Audit details
+  action   String
+  entity   String
+  entityId String?
+  oldValue Json?
+  newValue Json?
+
+  // Enhanced audit properties
+  category String? // Categorize audit events
+  severity String? // INFO, WARN, ERROR
+  tags     String[] @default([])
+
+  // Request context
+  ipAddress String?
+  userAgent String?
+  sessionId String?
+
+  createdAt DateTime @default(now())
+
+  // Relationships
   workflow  Workflow?          @relation(fields: [workflowId], references: [id])
   execution WorkflowExecution? @relation(fields: [executionId], references: [id])
   user      User               @relation(fields: [userId], references: [id])
@@ -206,33 +511,66 @@ model AuditLog {
 }
 
 model WorkflowMetrics {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  workflowId         String   @db.ObjectId
-  date               DateTime @db.Date
-  executionCount     Int      @default(0)
-  successCount       Int      @default(0)
-  failureCount       Int      @default(0)
-  avgExecutionTime   Float?
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId String   @db.ObjectId
+  date       DateTime @db.Date
+
+  // Execution metrics
+  executionCount Int @default(0)
+  successCount   Int @default(0)
+  failureCount   Int @default(0)
+  cancelledCount Int @default(0)
+  timeoutCount   Int @default(0)
+
+  // Performance metrics
+  avgExecutionTime   Float? // Average execution time in seconds
+  minExecutionTime   Float?
+  maxExecutionTime   Float?
   totalExecutionTime Float?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+
+  // User engagement
+  uniqueUsers Int @default(0)
+
+  // Email metrics
+  emailsSent      Int @default(0)
+  emailsDelivered Int @default(0)
+  emailsFailed    Int @default(0)
+
+  // Approval metrics
+  approvalsCreated   Int    @default(0)
+  approvalsCompleted Int    @default(0)
+  avgApprovalTime    Float? // Average approval time in hours
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@unique([workflowId, date])
   @@map("workflow_metrics")
 }
 
 model SystemConfig {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  key         String   @unique
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  key         String  @unique
   value       Json
   description String?
   category    String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean @default(true)
+  isEncrypted Boolean @default(false)
+
+  // Configuration metadata
+  dataType   String? // string, number, boolean, json
+  validation Json? // Validation rules
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("system_config")
 }
+
+// Enhanced Enums
 
 enum UserRole {
   ADMIN
@@ -240,6 +578,7 @@ enum UserRole {
   USER
   APPROVER
   VIEWER
+  WORKFLOW_DESIGNER
 }
 
 enum WorkflowStatus {
@@ -248,6 +587,7 @@ enum WorkflowStatus {
   INACTIVE
   ARCHIVED
   VALIDATION_FAILED
+  TESTING
 }
 
 enum ExecutionStatus {
@@ -257,6 +597,8 @@ enum ExecutionStatus {
   FAILED
   CANCELLED
   TIMEOUT
+  PAUSED
+  WAITING_FOR_APPROVAL
 }
 
 enum ApprovalStatus {
@@ -264,6 +606,8 @@ enum ApprovalStatus {
   APPROVED
   REJECTED
   ESCALATED
+  DELEGATED
+  EXPIRED
 }
 
 enum Priority {
@@ -271,6 +615,7 @@ enum Priority {
   MEDIUM
   HIGH
   CRITICAL
+  URGENT
 }
 
 enum TriggerType {
@@ -280,6 +625,8 @@ enum TriggerType {
   API
   EMAIL
   WEBHOOK
+  FILE_UPLOAD
+  DATABASE_CHANGE
 }
 
 enum ConditionType {
@@ -287,14 +634,68 @@ enum ConditionType {
   ESCALATION
   ROUTING
   APPROVAL
+  BUSINESS_RULE
+  DATA_VALIDATION
 }
 
 enum NotificationType {
   WORKFLOW_STARTED
   WORKFLOW_COMPLETED
   WORKFLOW_FAILED
+  WORKFLOW_PAUSED
+  STEP_COMPLETED
+  STEP_FAILED
   APPROVAL_REQUIRED
+  APPROVAL_COMPLETED
   DEADLINE_APPROACHING
+  DEADLINE_MISSED
   ESCALATION
   SYSTEM_ALERT
+  REMINDER
+  WARNING
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+  SLACK
+  TEAMS
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
+  SPAM
+}
+
+enum JobStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum StepAction {
+  SEND_EMAIL
+  SEND_NOTIFICATION
+  CREATE_APPROVAL
+  EXECUTE_SCRIPT
+  CALL_API
+  WAIT
+  CONDITION_CHECK
+  DATA_TRANSFORMATION
+  FILE_OPERATION
+  DATABASE_OPERATION
+  ESCALATE
+  DELEGATE
+  SCHEDULE_JOB
+  CUSTOM_ACTION
 }
