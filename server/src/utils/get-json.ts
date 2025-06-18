@@ -10,7 +10,6 @@ if (dotenv && typeof dotenv.config === 'function') {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // console.log(process.env.GEMINI_API_KEY);
-
 const MODEL_NAME = 'models/gemini-2.0-flash';
 
 /**
