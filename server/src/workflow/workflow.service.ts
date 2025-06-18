@@ -16,10 +16,18 @@ export class WorkflowService {
   }
 
   async findOne(id: string) {
-    const workflow = await this.prisma.workflow.findUnique({ where: { id } });
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id },
+      include: {
+        steps: {
+          orderBy: { stepNumber: 'asc' },
+        },
+      },
+    });
     if (!workflow) throw new NotFoundException('Workflow not found');
     return workflow;
   }
+  
 
   async update(id: string, data: UpdateWorkflowDto) {
     return this.prisma.workflow.update({ where: { id }, data });
