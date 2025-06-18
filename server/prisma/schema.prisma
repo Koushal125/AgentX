@@ -1,0 +1,300 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String   @unique
+  username   String   @unique
+  firstName  String
+  lastName   String
+  role       UserRole @default(USER)
+  department String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  workflows          Workflow[]
+  workflowExecutions WorkflowExecution[]
+  approvals          ApprovalTask[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+
+  @@map("users")
+}
+
+model Workflow {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  prompt      String
+  jsonPlan    Json
+  flowScript  String?
+  status      WorkflowStatus @default(DRAFT)
+  version     Int            @default(1)
+  isActive    Boolean        @default(true)
+  category    String?
+  priority    Priority       @default(MEDIUM)
+
+  createdBy      String    @db.ObjectId
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastDeployedAt DateTime?
+
+  creator       User                @relation(fields: [createdBy], references: [id])
+  steps         WorkflowStep[]
+  executions    WorkflowExecution[]
+  triggers      WorkflowTrigger[]
+  conditions    WorkflowCondition[]
+  approvals     ApprovalTask[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId   String   @db.ObjectId
+  stepNumber   Int
+  name         String
+  description  String?
+  action       String
+  role         String?
+  isOptional   Boolean  @default(false)
+  timeoutHours Int?
+  config       Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workflow   Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executions StepExecution[]
+
+  @@map("workflow_steps")
+}
+
+model WorkflowTrigger {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId String      @db.ObjectId
+  name       String
+  type       TriggerType
+  config     Json
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_triggers")
+}
+
+model WorkflowCondition {
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId String        @db.ObjectId
+  name       String
+  expression String
+  type       ConditionType @default(VALIDATION)
+  isActive   Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_conditions")
+}
+
+model WorkflowExecution {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String          @db.ObjectId
+  status      ExecutionStatus @default(PENDING)
+  startedAt   DateTime        @default(now())
+  completedAt DateTime?
+  triggeredBy String          @db.ObjectId
+  input       Json?
+  output      Json?
+  error       String?
+
+  workflow  Workflow        @relation(fields: [workflowId], references: [id])
+  user      User            @relation(fields: [triggeredBy], references: [id])
+  steps     StepExecution[]
+  auditLogs AuditLog[]
+
+  @@map("workflow_executions")
+}
+
+model StepExecution {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  executionId String          @db.ObjectId
+  stepId      String          @db.ObjectId
+  status      ExecutionStatus @default(PENDING)
+  startedAt   DateTime        @default(now())
+  completedAt DateTime?
+  input       Json?
+  output      Json?
+  error       String?
+  retryCount  Int             @default(0)
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  step      WorkflowStep      @relation(fields: [stepId], references: [id])
+
+  @@map("step_executions")
+}
+
+model ApprovalTask {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String         @db.ObjectId
+  assignedTo  String         @db.ObjectId
+  title       String
+  description String?
+  status      ApprovalStatus @default(PENDING)
+  priority    Priority       @default(MEDIUM)
+  dueDate     DateTime?
+  decision    String?
+  comments    String?
+  decidedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id])
+  assignee User     @relation(fields: [assignedTo], references: [id])
+
+  @@map("approval_tasks")
+}
+
+model Notification {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId String?          @db.ObjectId
+  userId     String           @db.ObjectId
+  type       NotificationType
+  title      String
+  message    String
+  isRead     Boolean          @default(false)
+  priority   Priority         @default(LOW)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  workflow Workflow? @relation(fields: [workflowId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId  String?  @db.ObjectId
+  executionId String?  @db.ObjectId
+  userId      String   @db.ObjectId
+  action      String
+  entity      String
+  entityId    String?
+  oldValue    Json?
+  newValue    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  workflow  Workflow?          @relation(fields: [workflowId], references: [id])
+  execution WorkflowExecution? @relation(fields: [executionId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model WorkflowMetrics {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  workflowId         String   @db.ObjectId
+  date               DateTime @db.Date
+  executionCount     Int      @default(0)
+  successCount       Int      @default(0)
+  failureCount       Int      @default(0)
+  avgExecutionTime   Float?
+  totalExecutionTime Float?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([workflowId, date])
+  @@map("workflow_metrics")
+}
+
+model SystemConfig {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  value       Json
+  description String?
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  USER
+  APPROVER
+  VIEWER
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  VALIDATION_FAILED
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TriggerType {
+  SCHEDULE
+  EVENT
+  MANUAL
+  API
+  EMAIL
+  WEBHOOK
+}
+
+enum ConditionType {
+  VALIDATION
+  ESCALATION
+  ROUTING
+  APPROVAL
+}
+
+enum NotificationType {
+  WORKFLOW_STARTED
+  WORKFLOW_COMPLETED
+  WORKFLOW_FAILED
+  APPROVAL_REQUIRED
+  DEADLINE_APPROACHING
+  ESCALATION
+  SYSTEM_ALERT
+}
