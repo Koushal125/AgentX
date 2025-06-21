@@ -9,15 +9,8 @@ if (dotenv && typeof dotenv.config === 'function') {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// console.log(process.env.GEMINI_API_KEY);
 const MODEL_NAME = 'models/gemini-2.0-flash';
 
-/**
- * Generates a JSON object from a natural language prompt using Gemini API.
- *
- * @param prompt - The user-provided prompt.
- * @returns The generated JSON object.
- */
 export async function generateJsonFromPrompt(prompt: string): Promise<any> {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is not set in your environment variables.');
