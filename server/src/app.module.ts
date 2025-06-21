@@ -9,7 +9,7 @@ import { EmailModule } from './email/email.module';
 import { WorkflowExecutionModule } from './workflow-execution/workflow-execution.module';
 
 @Module({
-  imports: [JsonGenModule, PrismaModule, UserModule, WorkflowModule, EmailModule, WorkflowExecutionModule],
+  imports: [JsonGenModule, PrismaModule, UserModule],
   controllers: [AppController],
   providers: [AppService],
 })

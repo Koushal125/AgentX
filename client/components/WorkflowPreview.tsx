@@ -96,12 +96,12 @@
 
 // export default WorkflowPreview;
 
-"use client"
-import type React from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { WorkflowData } from "@/app/dashboard/page"
+'use client'
+import type React from 'react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { WorkflowData } from '@/app/dashboard/form/page'
 
 type Props = {
   data: WorkflowData
@@ -111,19 +111,19 @@ type Props = {
 
 const WorkflowPreview: React.FC<Props> = ({ data, onApprove, onReject }) => {
   const formatKey = (key: string) => {
-    return key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())
+    return key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())
   }
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
-      case "high":
-        return "bg-red-500 text-white"
-      case "medium":
-        return "bg-yellow-500 text-black"
-      case "low":
-        return "bg-green-500 text-white"
+      case 'high':
+        return 'bg-red-500 text-white'
+      case 'medium':
+        return 'bg-yellow-500 text-black'
+      case 'low':
+        return 'bg-green-500 text-white'
       default:
-        return "bg-gray-500 text-white"
+        return 'bg-gray-500 text-white'
     }
   }
 
@@ -151,14 +151,8 @@ const WorkflowPreview: React.FC<Props> = ({ data, onApprove, onReject }) => {
             <div key={key} className="bg-neutral-800/50 rounded-xl p-4 border border-neutral-700">
               <div className="flex items-start justify-between mb-2">
                 <span className="text-sm font-semibold text-gray-400 uppercase tracking-wide">{formatKey(key)}</span>
-                {key === "priority" && (
-                  <Badge className={`${getPriorityColor(value)} text-xs font-semibold px-2 py-1 rounded-full`}>
-                    {value}
-                  </Badge>
-                )}
-                {key === "recurrence" && (
-                  <Badge className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full">{value}</Badge>
-                )}
+                {key === 'priority' && <Badge className={`${getPriorityColor(value)} text-xs font-semibold px-2 py-1 rounded-full`}>{value}</Badge>}
+                {key === 'recurrence' && <Badge className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full">{value}</Badge>}
               </div>
               <p className="text-white text-base font-medium leading-relaxed">{value}</p>
             </div>
@@ -169,15 +163,11 @@ const WorkflowPreview: React.FC<Props> = ({ data, onApprove, onReject }) => {
           <Button
             onClick={onApprove}
             className="flex-1 py-4 text-lg font-bold text-black transition-all duration-200 hover:scale-[1.02] rounded-xl"
-            style={{ backgroundColor: "oklch(76.8% 0.233 130.85)" }}
+            style={{ backgroundColor: 'oklch(76.8% 0.233 130.85)' }}
           >
             Approve Workflow
           </Button>
-          <Button
-            onClick={onReject}
-            variant="outline"
-            className="flex-1 py-4 text-lg font-bold border-2 border-neutral-600 text-white hover:bg-neutral-800 hover:scale-[1.02] rounded-xl"
-          >
+          <Button onClick={onReject} variant="outline" className="flex-1 py-4 text-lg font-bold border-2 border-neutral-600 text-white hover:bg-neutral-800 hover:scale-[1.02] rounded-xl">
             Reject Workflow
           </Button>
         </div>

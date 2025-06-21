@@ -9,9 +9,9 @@ export class JsonGenController {
   
   @Post('generate')
   async generateJson(
-    @Body() body : {propmpt : string}
+    @Body() body : {prompt : string}
   ) : Promise<JSON>{
-    return this.jsonGenService.generateJson(body.propmpt)
+    return this.jsonGenService.generateJson(body.prompt)
   }
   
   

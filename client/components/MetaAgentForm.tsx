@@ -114,14 +114,14 @@
 // };
 
 // export default MetaAgentForm;
-"use client"
-import { useState } from "react"
-import type React from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { WorkflowData } from "@/app/dashboard/page"
+'use client'
+import { useState } from 'react'
+import type React from 'react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { WorkflowData } from '@/app/dashboard/form/page'
 
 type MetaAgentFormProps = {
   onPreview: (data: WorkflowData) => void
@@ -129,14 +129,14 @@ type MetaAgentFormProps = {
 
 const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
   const [form, setForm] = useState({
-    taskName: "",
-    description: "",
-    department: "",
-    trigger: "",
-    action: "",
-    escalation: "",
-    priority: "Medium",
-    recurrence: "One-time",
+    taskName: '',
+    description: '',
+    department: '',
+    trigger: '',
+    action: '',
+    escalation: '',
+    priority: 'Medium',
+    recurrence: 'One-time',
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -159,7 +159,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
     <div className="bg-neutral-900/80 backdrop-blur-sm border border-neutral-800 rounded-2xl p-8">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-          Agent <span style={{ color: "oklch(76.8% 0.233 130.85)" }}>X</span>
+          Agent <span style={{ color: 'oklch(76.8% 0.233 130.85)' }}>X</span>
         </h2>
         <p className="text-gray-400 text-lg">Create Workflow Automation</p>
       </div>
@@ -175,7 +175,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
             value={form.taskName}
             onChange={handleChange}
             className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 text-lg"
-            style={{ "--tw-ring-color": "oklch(76.8% 0.233 130.85)" } as React.CSSProperties}
+            style={{ '--tw-ring-color': 'oklch(76.8% 0.233 130.85)' } as React.CSSProperties}
           />
         </div>
 
@@ -203,7 +203,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
               value={form.department}
               onChange={handleChange}
               className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 text-lg"
-              style={{ "--tw-ring-color": "oklch(76.8% 0.233 130.85)" } as React.CSSProperties}
+              style={{ '--tw-ring-color': 'oklch(76.8% 0.233 130.85)' } as React.CSSProperties}
             />
           </div>
 
@@ -216,7 +216,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
               value={form.trigger}
               onChange={handleChange}
               className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 text-lg"
-              style={{ "--tw-ring-color": "oklch(76.8% 0.233 130.85)" } as React.CSSProperties}
+              style={{ '--tw-ring-color': 'oklch(76.8% 0.233 130.85)' } as React.CSSProperties}
             />
           </div>
         </div>
@@ -232,7 +232,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
               value={form.action}
               onChange={handleChange}
               className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 text-lg"
-              style={{ "--tw-ring-color": "oklch(76.8% 0.233 130.85)" } as React.CSSProperties}
+              style={{ '--tw-ring-color': 'oklch(76.8% 0.233 130.85)' } as React.CSSProperties}
             />
           </div>
 
@@ -245,7 +245,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
               value={form.escalation}
               onChange={handleChange}
               className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 text-lg"
-              style={{ "--tw-ring-color": "oklch(76.8% 0.233 130.85)" } as React.CSSProperties}
+              style={{ '--tw-ring-color': 'oklch(76.8% 0.233 130.85)' } as React.CSSProperties}
             />
           </div>
         </div>
@@ -254,7 +254,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <label className="block text-lg font-semibold text-gray-300 mb-3">Priority Level</label>
-            <Select value={form.priority} onValueChange={(value) => handleSelectChange("priority", value)}>
+            <Select value={form.priority} onValueChange={(value) => handleSelectChange('priority', value)}>
               <SelectTrigger className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 text-white rounded-xl text-lg h-auto">
                 <SelectValue placeholder="Select priority" />
               </SelectTrigger>
@@ -283,7 +283,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
 
           <div>
             <label className="block text-lg font-semibold text-gray-300 mb-3">Recurrence</label>
-            <Select value={form.recurrence} onValueChange={(value) => handleSelectChange("recurrence", value)}>
+            <Select value={form.recurrence} onValueChange={(value) => handleSelectChange('recurrence', value)}>
               <SelectTrigger className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 text-white rounded-xl text-lg h-auto">
                 <SelectValue placeholder="Select recurrence" />
               </SelectTrigger>
@@ -308,7 +308,7 @@ const MetaAgentForm: React.FC<MetaAgentFormProps> = ({ onPreview }) => {
         <Button
           type="submit"
           className="w-full py-4 text-lg font-bold text-black transition-all duration-200 hover:scale-[1.02] rounded-xl mt-8"
-          style={{ backgroundColor: "oklch(76.8% 0.233 130.85)" }}
+          style={{ backgroundColor: 'oklch(76.8% 0.233 130.85)' }}
         >
           Generate Workflow
         </Button>

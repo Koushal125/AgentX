@@ -7,7 +7,7 @@ export class WorkflowExecutionController {
 
   @Post(':workflowId/execute')
   async execute(@Param('workflowId') workflowId: string) {
-    await this.executionService.executeWorkflow(workflowId);
+    await this.executionService.executeWorkflow(workflowId, "user");
     return { message: 'Workflow execution started' };
   }
 }
