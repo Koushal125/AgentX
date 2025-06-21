@@ -25,55 +25,57 @@ export async function generateJsonFromPrompt(prompt: string): Promise<any> {
 
   const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-const fullPrompt = `
-You are a strict JSON generator for a platform called AgentX.
-
-Your task is to read a user's natural language prompt describing a business workflow and convert it into a structured JSON object with the following fields:
-
-{
-  "name": string | null,
-  "description": string | null,
-  "roles": string[], // e.g., ["HR", "Manager", "Employee"]
-  "actions": [ // ordered list of workflow actions
-    {
-      "step": number,
-      "name": string,
-      "performedBy": string,
-      "type": string, // e.g., "email", "task", "notification"
-      "details": object // e.g., { "template": "name", "deadlineHours": 24 }
-    }
-  ],
-  "triggers": [
-    {
-      "type": string, // e.g., "event", "form", "apiCall"
-      "event": string
-    }
-  ],
-  "conditions": string[], // logical prerequisites like ["Manager approval required"]
-  "deadlines": [
-    {
-      "action": string,
-      "dueInHours": number,
-      "escalation": {
-        "to": string,
-        "reason": string
+  const fullPrompt = `
+  You are a strict JSON generator for a platform called AgentX.
+  
+  Your task is to read a user's natural language prompt describing a business workflow and convert it into a structured JSON object with the following fields:
+  
+  {
+    "name": string,
+    "description": string,
+    "roles": string[], // e.g., ["HR", "Manager", "Employee"]
+    "actions": [ // ordered list of workflow actions
+      {
+        "step": number,
+        "name": string,
+        "performedBy": string,
+        "type": string, // e.g., "email", "task", "notification"
+        "details": object // e.g., { "template": "name", "deadlineHours": 24 }
       }
-    }
-  ]
-}
-
-Output rules:
-- Respond ONLY with a valid JSON object — no extra commentary, text, or markdown.
-- If any field is missing from the prompt, use null or [] appropriately.
-- Use camelCase for all field names.
-- Be as accurate and structured as possible.
-
-Example Prompt:
-"Whenever a new employee joins, HR should send onboarding documents, then the IT team should set up the laptop within 2 days. If not completed, escalate to the manager."
-
-Prompt:
-"${prompt}"
-`;
+    ],
+    "triggers": [
+      {
+        "type": string, // e.g., "event", "form", "apiCall"
+        "event": string
+      }
+    ],
+    "conditions": string[], // logical prerequisites like ["Manager approval required"]
+    "deadlines": [
+      {
+        "action": string,
+        "dueInHours": number,
+        "escalation": {
+          "to": string,
+          "reason": string
+        }
+      }
+    ]
+  }
+  
+  Output rules:
+  - Respond ONLY with a valid JSON object — no extra commentary, text, or markdown.
+  - NEVER leave any top-level field as null. Derive or infer meaningful values when not explicitly stated (e.g., extract a name or description from the prompt context).
+  - If any array field is missing from the prompt, return an empty array [].
+  - Use camelCase for all field names.
+  - Be precise, structured, and deterministic in formatting the output.
+  
+  Example Prompt:
+  "Whenever a new employee joins, HR should send onboarding documents, then the IT team should set up the laptop within 2 days. If not completed, escalate to the manager."
+  
+  Prompt:
+  ${prompt}
+  `
+  
 
 
 

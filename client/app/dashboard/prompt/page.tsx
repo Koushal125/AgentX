@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 export default function PromptPage() {
   const [prompt, setPrompt] = useState('')
+  const [lastPrompt, setLastPrompt] = useState<string | null>(null)
   const [jsonResult, setJsonResult] = useState<any>(null)
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +40,7 @@ export default function PromptPage() {
 
       const data = await response.json()
       setJsonResult(data)
+      setLastPrompt(trimmed) // Save last submitted prompt here
       setPrompt('')
     } catch (error) {
       toast.error('Failed to fetch response')
@@ -63,11 +65,18 @@ export default function PromptPage() {
         <Button type="submit" className="w-full py-4 text-lg font-bold text-black transition-all duration-200 hover:scale-[1.02] rounded-xl" style={{ backgroundColor: 'oklch(76.8% 0.233 130.85)' }}>
           Submit Prompt
         </Button>
+
+        {/* Display last submitted prompt */}
+        {lastPrompt && (
+          <p className="mt-4 text-left text-sm text-gray-300">
+            <span className="font-semibold">Last prompt submitted:</span> {lastPrompt}
+          </p>
+        )}
       </form>
 
       {/* JSON Result Panel */}
       {jsonResult && (
-        <div className="bg-neutral-900 border text-wrap border-neutral-700 rounded-xl shadow-lg p-6 w-full max-w-2xl text-left overflow-auto text-sm text-green-300 font-mono whitespace-pre-wrap">
+        <div className="bg-neutral-900 border border-neutral-700 rounded-xl shadow-lg p-6 w-full max-w-2xl text-left overflow-auto text-sm text-green-300 font-mono whitespace-pre-wrap">
           <h2 className="text-xl font-semibold text-white mb-4">Generated JSON</h2>
           <pre className="overflow-x-auto">{JSON.stringify(jsonResult, null, 2)}</pre>
         </div>
