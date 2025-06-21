@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 export default function PromptPage() {
   const [prompt, setPrompt] = useState('')
   const [lastPrompt, setLastPrompt] = useState<string | null>(null)
-  const [jsonResult, setJsonResult] = useState<any>(null)
+  const [jsonResult, setJsonResult] = useState<JSON | null>(null)
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPrompt(e.target.value)

@@ -9,6 +9,9 @@ export default function CenteredOptions() {
   const router = useRouter()
 
   const handleOption = (option: string) => {
+    if (selectedOption === option) {
+      console.log('tested')
+    }
     setSelectedOption(option)
     router.push(`/dashboard/${option}`)
   }
