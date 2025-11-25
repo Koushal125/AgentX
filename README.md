@@ -1,7 +1,7 @@
 # AgentX  
 *Automate workflows. Effortlessly.*
 
-AgentX is a natural-language-driven workflow generation tool designed to simplify and accelerate how users build flows on the ServiceNow platform. Instead of navigating complex tables, triggers, and configurations, users describe their goal in plain English—and AgentX generates a fully structured, deployable workflow in minutes. :contentReference[oaicite:1]{index=1}  
+AgentX is a natural-language-driven workflow generation tool designed to simplify and accelerate how users build flows on the ServiceNow platform. Instead of navigating complex tables, triggers, and configurations, users describe their goal in plain English—and AgentX generates a fully structured, deployable workflow in minutes.  
 
 ---
 
